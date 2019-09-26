@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--日志级别以及优先级排序: OFF > FATAL > ERROR > WARN > INFO > DEBUG > TRACE > ALL -->
+<!-- status log4j2内部日志级别 -->
+<configuration status="INFO">
+    <!-- 全局参数 -->
+    <Properties>
+        <Property name="PATTERN">%d{yyyy-MM-dd HH:mm:ss,SSS} | %style{%-5level}{highlight,green} | %style{%t}{blue} | %style{%c{1.}:%L}{yellow} | %m%n</Property>
+        <Property name="FILE_NAME">demo-dtu</Property>
+        <property name="FILE_PATH" value="log/log4j2" />
+    </Properties>
+    <Appenders>
+        <Console name="console" target="SYSTEM_OUT" follow="true">
+            <PatternLayout>
+                <pattern>${PATTERN}</pattern>
+                <disableAnsi>false</disableAnsi>
+                <noConsoleNoAnsi>false</noConsoleNoAnsi>
+            </PatternLayout>
+        </Console>
+        <!-- 文件 每次运行程序会自动清空，由append属性决定 -->
+        <File name="error" fileName="${FILE_PATH}/${FILE_NAME}/sys_error.log" append="false">
+            <!-- 指定error 级别的日志 -->
+            <ThresholdFilter level="ERROR" onMatch="ACCEPT"
+                             onMismatch="DENY" />
+            <PatternLayout>
+                <pattern>${PATTERN}</pattern>
+            </PatternLayout>
+        </File>
+        <!-- 滚动文件 -->
+        <RollingFile name="rollingFile" fileName="${FILE_PATH}/${FILE_NAME}/sys-info.log"
+                     filePattern="${FILE_PATH}/${FILE_NAME}/sys-info-%d{yyyy-MM-dd}.log">
+            <PatternLayout>
+                <pattern>${PATTERN}</pattern>
+            </PatternLayout>
+            <!-- 按大小划分 -->
+            <SizeBasedTriggeringPolicy size="50 MB" />
+        </RollingFile>
+    </Appenders>
+    <Loggers>
+        <Logger name="org.springframework" level="WARN" />
+        <Logger name="com.demo" level="INFO" />
+        <Logger name="com.fzk" level="INFO" />
+        <Logger name="io.netty" level="OFF" />
+        <Root level="INFO">
+            <AppenderRef ref="console"></AppenderRef>
+            <AppenderRef ref="error"></AppenderRef>
+            <AppenderRef ref="rollingFile"></AppenderRef>
+        </Root>
+    </Loggers>
+</configuration>
