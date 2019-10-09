@@ -3,6 +3,7 @@
  */
 package com.fzk.demo.dtu.util;
 
+import com.fzk.dtu.utils.BytesUtil;
 import com.fzk.dtu.utils.RestoreUtil;
 import com.fzk.sdk.util.BytesTranUtil;
 import io.netty.buffer.ByteBuf;
@@ -30,11 +31,11 @@ public class KT20CodecUtil {
     public static String Byte2StringSerialize(ByteBuf in) throws Exception {
         int readableLen = in.readableBytes();
         if (readableLen < MIN_LENGTH) {
-            return "";
+            return null;
         }
         int startSignIndex = in.forEachByte(new ByteProcessor.IndexOfProcessor(SIGN_CODE));
         if(startSignIndex==-1){
-            return "";
+            return null;
         }
         //将readerIndex置为起始符下标+1
         //因为起始符结束符是一样的，如果不往后移一位，下次到的还是起始下标
@@ -42,21 +43,35 @@ public class KT20CodecUtil {
 
         //找到第一个报文结束符的下标
         int endSignIndex = in.forEachByte(new ByteProcessor.IndexOfProcessor(SIGN_CODE));
-        if(endSignIndex == -1 || endSignIndex <= startSignIndex){
+        if(endSignIndex == -1 || endSignIndex < startSignIndex){
             in.readerIndex(startSignIndex);
-            return "";
+            return null;
         }
+
+
         //计算报文的总长度
         //此处不能去操作writerIndex,否则只能截取到第一条完整报文
-        int length = endSignIndex - startSignIndex + 1;
+        int length = endSignIndex + 1 - startSignIndex;
+
+        //如果长度还小于最小长度，就丢掉这条消息
+        if(length < MIN_LENGTH){
+            byte[] errMsg = new byte[length];
+            for(int i= startSignIndex; i< (endSignIndex + 1); i++){
+                int errIndex = i-startSignIndex;
+                errMsg[errIndex] = in.getByte(i);
+            }
+            log.error("异常消息，有分隔符但长度太短：{}", BytesUtil.bytesToHexShortString(errMsg));
+            in.readerIndex(endSignIndex);
+            return null;
+        }
+
         //将报文内容写入符串，并返回
         byte[] data = new byte[length];
         in.readerIndex(startSignIndex);
-        in.writerIndex(endSignIndex + 1);
         in.readBytes(data);
         //转义还原
         data = RestoreUtil.restore(data);
-        return BytesTranUtil.toHexString(data);
+        return BytesUtil.bytesToHexString4BSJ(data).toUpperCase();
     }
 
 

@@ -24,6 +24,9 @@ public class DeviceHandler extends ChannelInboundHandlerAdapter {
         String serverMsg = msg.toString();
 
         if (index<1) {
+            //登录消息
+            String up = "7E 01 02 08 20 01 45 33 22 43 52 00 21 46 09 7D F6 86 5E 66 E4 11 B6 AD 8A EE 92 D3 11 42 EC 8B 51 D6 31 9A E7 2A 6F C8 56 C4 3F C1 6F 8E 7E";
+
             //3,7#b401,1,2
 //            String up = "7E0900000D014533224352000441332C3723623430312C312C325A7E";
             //3,1#b709,
@@ -31,7 +34,7 @@ public class DeviceHandler extends ChannelInboundHandlerAdapter {
             //鉴权消息
 //            String up = "7E010200140145332243520002465A4B2D42534A2D4B5432302D434F4E4649524D3F7E";
             //定位消息
-            String up = "7E0200002201453322435200030000000000000001015F1FDA06D0AA40000000000000190812195834010400000000B27E";
+//            String up = "7E0200002201453322435200030000000000000001015F1FDA06D0AA40000000000000190812195834010400000000B27E";
 //            String temp = "7E 02 00 00 3C 01 45 33 22 43 52 0B 1B 00 00 00 00 80 12 40 02 01 C4 11 D0 06 58 D8 90 02 32 00 00 00 C8 19 09 10 12 58 38 01 04 00 00 00 07 02 08 00 00 00 00 00 00 00 00 BC 0E 00 0C 00 B2 89 86 04 41 19 18 C3 61 50 10 8F 7E";
 //            String up = temp.replaceAll(" ", "");
             //告警消息
@@ -176,6 +179,7 @@ public class DeviceHandler extends ChannelInboundHandlerAdapter {
 
     @Override
     public void channelActive(ChannelHandlerContext ctx) throws Exception {
+        //注册消息
         String in = "7E010000210145332243520001002C012F37303131314B542D32302020206342440257666501D4C14238383838381C7E";
         log.info("模拟设备注册消息: {}", in);
         ctx.channel().writeAndFlush(in);

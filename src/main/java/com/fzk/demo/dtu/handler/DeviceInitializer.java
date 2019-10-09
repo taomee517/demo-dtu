@@ -18,11 +18,11 @@ public class DeviceInitializer extends ChannelInitializer<SocketChannel> {
     @Override
     protected void initChannel(SocketChannel socketChannel) throws Exception {
         ChannelPipeline pipeline = socketChannel.pipeline();
-        pipeline.addLast(new IdleStateHandler(0,20,0, TimeUnit.MILLISECONDS));
+        pipeline.addLast(new IdleStateHandler(0,5000,0, TimeUnit.MILLISECONDS));
         pipeline.addLast(new KT20Encoder());
         pipeline.addLast(new KT20Decoder());
-//        pipeline.addLast(new DeviceHandler());
+        pipeline.addLast(new DeviceHandler());
 //        pipeline.addLast(new DeviceEncodeHandler());
-        pipeline.addLast(new DeviceTestHandler());
+//        pipeline.addLast(new DeviceTestHandler());
     }
 }

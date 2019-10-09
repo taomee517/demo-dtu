@@ -21,7 +21,7 @@ public class DeviceClient {
         try {
             Bootstrap bootstrap = new Bootstrap();
             bootstrap.group(eventLoopGroup).channel(NioSocketChannel.class).handler(new DeviceInitializer());
-            ChannelFuture future = bootstrap.connect("192.168.2.61", 2120).sync();
+            ChannelFuture future = bootstrap.connect("127.0.0.1", 2120).sync();
 
             future.channel().closeFuture().sync();
         } catch (InterruptedException e) {
