@@ -24,8 +24,11 @@ public class DeviceHandler extends ChannelInboundHandlerAdapter {
         String serverMsg = msg.toString();
 
         if (index<1) {
-            //登录消息
+            //登录消息 - 623568794561335
             String up = "7E 01 02 08 20 01 45 33 22 43 52 00 21 46 09 7D F6 86 5E 66 E4 11 B6 AD 8A EE 92 D3 11 42 EC 8B 51 D6 31 9A E7 2A 6F C8 56 C4 3F C1 6F 8E 7E";
+
+            //登录消息 - 868288049818489
+//        String up = "7E01020820015018513878000146097DF6865E66E411B6AD8AEE92D311C96ADB7EC9EE218D3059A698D1720193397E";
 
             //3,7#b401,1,2
 //            String up = "7E0900000D014533224352000441332C3723623430312C312C325A7E";
@@ -119,7 +122,10 @@ public class DeviceHandler extends ChannelInboundHandlerAdapter {
         }else if(serverMsg.contains("352362383031")){
             log.info("服务器升级指令: {}", serverMsg );
             serverMsg = null;
-            String upgradeReq = "7E0900001A014533224352000441362C3523623830332C312C323131322C3130302C44595F5632617E";
+            //分片大小256
+//            String upgradeReq = "7E0900001A014533224352000441362C3523623830332C312C323131322C3130302C44595F5632617E";
+            //分片大小512
+            String upgradeReq = "7E0900001A014533224352000441362C3523623830332C312C323131322C3230302C44595F5632627E";
             upgradeReq = upgradeReq.replaceAll(" ", "");
             ctx.channel().writeAndFlush(upgradeReq);
             log.info("设备发送升级请求：{}", upgradeReq);
@@ -137,7 +143,10 @@ public class DeviceHandler extends ChannelInboundHandlerAdapter {
             log.info("收到分片内容{}：{}",shardIndex, serverMsg);
             serverMsg = null;
             if (shardIndex==2) {
-                String shardReq = "7E09000011014533224352000441362C3523623830352C3165662C3166301F7E";
+                //分片大小-256
+//                String shardReq = "7E09000011014533224352000441362C3523623830352C3165662C3166301F7E";
+                //分片大小-512
+                String shardReq = "7E0900000F014533224352000441362C3523623830352C66372C66385B7E";
                 log.info("设备发送最后分片请求：{}", shardReq);
                 ctx.channel().writeAndFlush(shardReq);
             }else
@@ -151,7 +160,10 @@ public class DeviceHandler extends ChannelInboundHandlerAdapter {
             log.info("收到分片校验信息：{}", serverMsg);
             serverMsg = null;
             if (shardValidIndex == 1) {
-                String shardReq = "7E09000011014533224352000441362C3523623830372C3165662C3166301D7E";
+                //分片大小-256
+//                String shardReq = "7E09000011014533224352000441362C3523623830372C3165662C3166301D7E";
+                //分片大小-512
+                String shardReq = "7E0900000F014533224352000441362C3523623830372C66372C6638597E";
                 log.info("设备发送最后分片校验请求：{}", shardReq);
                 ctx.channel().writeAndFlush(shardReq);
             }else if(shardValidIndex > 1){
@@ -180,10 +192,9 @@ public class DeviceHandler extends ChannelInboundHandlerAdapter {
     @Override
     public void channelActive(ChannelHandlerContext ctx) throws Exception {
         //注册消息 - 623568794561335
-//        String in = "7E010000210145332243520001002C012F37303131314B542D32302020206342440257666501D4C14238383838381C7E";
-        //注册消息
-        String in = "7E 01 02 08 20 01 50 18 51 38 78 00 01 46 09 7D F6 86 5E 66 E4 11 B6 AD 8A EE 92 D3 11 C9 6A DB 7E C9 EE 21 8D 30 59 A6 98 D1 72 01 93 39 7E";
-//        String in = "";
+        String in = "7E010000210145332243520001002C012F37303131314B542D32302020206342440257666501D4C14238383838381C7E";
+        //注册消息 - 868288049818489
+//        String in = "7E01020820015018513878000146097DF6865E66E411B6AD8AEE92D311C96ADB7EC9EE218D3059A698D1720193397E";
         log.info("模拟设备注册消息: {}", in);
         ctx.channel().writeAndFlush(in);
     }

@@ -69,8 +69,8 @@ public class KT20CodecUtil {
         byte[] data = new byte[length];
         in.readerIndex(startSignIndex);
         in.readBytes(data);
-        //转义还原
-        data = RestoreUtil.restore(data);
+//        //转义还原
+//        data = RestoreUtil.restore(data);
         return BytesUtil.bytesToHexString4BSJ(data).toUpperCase();
     }
 
