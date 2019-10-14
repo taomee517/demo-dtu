@@ -179,8 +179,11 @@ public class DeviceHandler extends ChannelInboundHandlerAdapter {
 
     @Override
     public void channelActive(ChannelHandlerContext ctx) throws Exception {
+        //注册消息 - 623568794561335
+//        String in = "7E010000210145332243520001002C012F37303131314B542D32302020206342440257666501D4C14238383838381C7E";
         //注册消息
-        String in = "7E010000210145332243520001002C012F37303131314B542D32302020206342440257666501D4C14238383838381C7E";
+        String in = "7E 01 02 08 20 01 50 18 51 38 78 00 01 46 09 7D F6 86 5E 66 E4 11 B6 AD 8A EE 92 D3 11 C9 6A DB 7E C9 EE 21 8D 30 59 A6 98 D1 72 01 93 39 7E";
+//        String in = "";
         log.info("模拟设备注册消息: {}", in);
         ctx.channel().writeAndFlush(in);
     }

@@ -15,7 +15,7 @@
         <log4j2-version>2.9.1</log4j2-version>
         <slf4j-version>1.7.25</slf4j-version>
         <netty-version>4.1.32.Final</netty-version>
-        <fzk-logger-version>1.0.53</fzk-logger-version>
+        <fzk-logger-version>1.0.61</fzk-logger-version>
     </properties>
 
     <dependencies>
