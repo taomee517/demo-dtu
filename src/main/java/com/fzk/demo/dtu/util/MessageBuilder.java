@@ -1,20 +1,40 @@
 package com.fzk.demo.dtu.util;
 
+import com.fzk.dtu.constant.UpMsgType;
 import com.fzk.dtu.utils.*;
+import io.netty.buffer.ByteBuf;
+import io.netty.buffer.ByteBufAllocator;
+import io.netty.buffer.Unpooled;
 import lombok.extern.slf4j.Slf4j;
 
 import java.nio.ByteBuffer;
+import java.nio.charset.Charset;
+import java.util.concurrent.atomic.AtomicLong;
 
 @Slf4j
 public class MessageBuilder {
+    private static Charset charset = Charset.forName("gb2312");
+    private static AtomicLong serialGenerator = new AtomicLong(0);
 
-    public static String buildMsg(String snNo, String srcMsgId, byte[] content, int serial, boolean aesEncode){
+    private static int getSerial(){
+        Long serialCore = serialGenerator.addAndGet(1);
+        Long serialTemp = serialCore%(0xff+1);
+        return serialTemp.intValue();
+    }
+
+    public static String buildFzkMsg(String sn, String fzkContent, boolean aesEncode){
+        byte[] fzkBytes = fzkContent.getBytes(charset);
+        ByteBuf buf = Unpooled.buffer(fzkBytes.length + 1);
+        buf.writeByte(0x41);
+        buf.writeBytes(fzkBytes);
+        return buildMsg(sn, UpMsgType.PASSTHROUGH.getMsgId(),buf.array(), aesEncode);
+    }
+
+    public static String buildMsg(String sn, int funId, byte[] content, boolean aesEncode){
         ByteBuffer bf = ByteBuffer.allocate(1024);
 
         /**head部分*/
-        //msgid
-        int downMsgId = Integer.valueOf(srcMsgId,16);
-        ParseUtil.putTwoBytesInt(bf,downMsgId);
+        ParseUtil.putTwoBytesInt(bf,funId);
 
         //消息体属性
         //分包
@@ -37,12 +57,12 @@ public class MessageBuilder {
         ParseUtil.putTwoBytesInt(bf,msgInfo);
 
         //手机号->设备序列号
-        snNo = ZeroFillStrUtil.zeroFillStr(snNo,12);
-        byte[] sn = BCD6Util.ascii2bcd(snNo.getBytes(),snNo.length());;
-        bf.put(sn);
+        sn = ZeroFillStrUtil.zeroFillStr(sn,12);
+        byte[] snBytes = BCD6Util.ascii2bcd(sn.getBytes(),sn.length());;
+        bf.put(snBytes);
 
         //下行消息流水号
-        ParseUtil.putTwoBytesInt(bf,serial);
+        ParseUtil.putTwoBytesInt(bf,getSerial());
 
         /**消息内容部分*/
         if(content!=null){

@@ -11,15 +11,13 @@ import lombok.extern.slf4j.Slf4j;
 import java.util.List;
 
 @Slf4j
-public class KT20Encoder extends MessageToMessageEncoder {
+public class DeviceLogRecorder extends MessageToMessageEncoder {
 
     @Override
     protected void encode(ChannelHandlerContext ctx, Object msg, List out) throws Exception {
         String downMsg = (String)msg;
-        String finalDownMsg = null;
-//        if (downMsg.length()>4) {
-            finalDownMsg = Secret2PlainUtil.plain2Secret(downMsg);
-//        }
+        log.info("设备消息：{}", downMsg);
+        String finalDownMsg = Secret2PlainUtil.plain2Secret(downMsg);
         byte[] bytes = BytesTranUtil.hexStringToBytes(finalDownMsg);
         ByteBuf buf = Unpooled.buffer(bytes.length);
         buf.writeBytes(bytes);
@@ -28,7 +26,7 @@ public class KT20Encoder extends MessageToMessageEncoder {
 
     @Override
     public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) throws Exception {
-        log.info("KT20Encoder发生异常：", cause);
+        log.info("DeviceLogRecorder发生异常：", cause);
         ctx.close();
     }
 }
