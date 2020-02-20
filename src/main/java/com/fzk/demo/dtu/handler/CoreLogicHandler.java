@@ -1,9 +1,10 @@
 package com.fzk.demo.dtu.handler;
 
-import com.fzk.demo.dtu.constant.DefaultValue;
+import com.fzk.demo.dtu.constant.AttachFunType;
 import com.fzk.demo.dtu.entity.Device;
 import com.fzk.demo.dtu.entity.MessageBasic;
 import com.fzk.demo.dtu.util.MessageBuilder;
+import com.fzk.demo.dtu.util.ReflectUtil;
 import com.fzk.dtu.constant.DownMsgType;
 import com.fzk.dtu.constant.UpMsgType;
 import com.fzk.dtu.utils.BytesUtil;
@@ -13,12 +14,17 @@ import io.netty.buffer.Unpooled;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInboundHandlerAdapter;
 import io.netty.handler.timeout.IdleStateEvent;
-import io.netty.util.ReferenceCountUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 
 import java.nio.ByteBuffer;
+import java.util.HashSet;
 import java.util.Objects;
+import java.util.Set;
+import java.util.concurrent.CompletableFuture;
+import java.util.function.Consumer;
+import java.util.function.Supplier;
+import java.util.stream.IntStream;
 
 import static com.fzk.demo.dtu.constant.DefaultValue.*;
 
@@ -33,9 +39,8 @@ import static com.fzk.demo.dtu.constant.DefaultValue.*;
 public class CoreLogicHandler extends ChannelInboundHandlerAdapter {
     private Device device;
 
-    private int index;
-    private int shardIndex;
-    private int shardValidIndex;
+    public volatile Set<String> waitShardIndexSet = new HashSet<>();
+
     private boolean isOnline = false;
 
     public CoreLogicHandler(Device device) {
@@ -48,11 +53,123 @@ public class CoreLogicHandler extends ChannelInboundHandlerAdapter {
         if(msg instanceof MessageBasic){
             MessageBasic in = ((MessageBasic) msg);
             String hexMsg = BytesUtil.bytesToHexShortString(in.raw);
-            log.info("平台消息：{}", hexMsg);
+            log.info("RAW-VVV：{}", hexMsg);
             int funId = in.funId;
             if(funId== DownMsgType.TRANSMIT.getMsgId()){
                 String fzkContent = new String(in.content);
                 log.info("透传↓↓↓↓：{}", fzkContent);
+                String[] fzkArray = StringUtils.split(fzkContent,PARA_CONNECTOR);
+                String funAndTag = fzkArray[1];
+                String[] funTagArray = StringUtils.split(funAndTag,FUN_TAG_CONNECTOR);
+                String fun = funTagArray[0];
+                String tag = funTagArray[1].toLowerCase();
+                String value = StringUtils.substringAfter(fzkContent,funAndTag);
+                AttachFunType type = AttachFunType.getTypeByFunId(Integer.valueOf(fun));
+                switch (type){
+                    case SETTING:
+                        ReflectUtil.tagSetting(device,tag,value);
+                    case QUERY:
+                    case PUBLISH:
+                        String ack = ReflectUtil.buildAttachMessage(AttachFunType.getTypeByFunId(type.getAckFunId()),device,tag);
+                        String packAck = MessageBuilder.buildFzkMsg(device.sn,ack,true);
+                        log.info("透传↑↑↑↑：{}", ack);
+                        ctx.writeAndFlush(packAck);
+                        break;
+                    case WRITE:
+                        switch (tag){
+                            case "b801":
+                                //升级命令
+                                String requestTag = "b803";
+                                writeMessage(ctx,type,requestTag);
+                                break;
+                            case "b804":
+                                //分片数据
+                                String srcTotalShard = StringUtils.split(value,PARA_CONNECTOR)[1];
+                                if(StringUtils.isNotEmpty(srcTotalShard)){
+                                    device.totalShard = Integer.valueOf(srcTotalShard,16);
+                                    if (device.totalShard%device.signleRequestSize==0) {
+                                        device.totalRequest = device.totalShard/device.signleRequestSize;
+                                    }else {
+                                        device.totalRequest = device.totalShard/device.signleRequestSize + 1;
+                                    }
+                                    String shardRequestParam = getShardRequestParam();
+                                    device.b805 = shardRequestParam;
+                                    String firstShardTag = "b805";
+                                    writeMessage(ctx,type,firstShardTag);
+                                    device.shardRequestIndex++;
+                                    putWaitShardSet(shardRequestParam);
+                                }else {
+                                    log.warn("升级文件总分片数为空！imei = {}", device.imei);
+                                }
+
+                                break;
+                            case "b806":
+                                //分片校验
+                                String srcShardDataIndex = StringUtils.split(value,PARA_CONNECTOR)[0];
+                                if (device.shardRequestIndex <= device.totalRequest) {
+                                    CompletableFuture.runAsync(()->{
+                                        waitShardIndexSet.remove(srcShardDataIndex);
+                                    }).thenAccept(new Consumer<Void>() {
+                                        @Override
+                                        public void accept(Void aVoid) {
+                                            log.info("index = {}, total = {}, set-size = {}", device.shardRequestIndex,device.totalRequest,waitShardIndexSet.size());
+                                            if (waitShardIndexSet.size()==0) {
+                                                String shardRequestParam = getShardRequestParam();
+                                                device.b805 = shardRequestParam;
+                                                String shardTag = "b805";
+                                                writeMessage(ctx,type,shardTag);
+                                                device.shardRequestIndex++;
+                                                putWaitShardSet(shardRequestParam);
+                                            }
+                                        }
+                                    });
+                                }else {
+                                    CompletableFuture.runAsync(()->{
+                                        waitShardIndexSet.remove(srcShardDataIndex);
+                                    }).thenAccept(new Consumer<Void>() {
+                                        @Override
+                                        public void accept(Void aVoid) {
+                                            if (waitShardIndexSet.size()==0) {
+                                                String startHexIndex = Integer.toHexString(0);
+                                                String endHexIndex = Integer.toHexString(7);
+                                                String shardValidRequestParam = StringUtils.join(startHexIndex, PARA_CONNECTOR, endHexIndex);
+                                                device.b807 =shardValidRequestParam;
+                                                String firstValidTag = "b807";
+                                                writeMessage(ctx, type, firstValidTag);
+                                                device.shardValidRequestIndex++;
+                                            }
+                                        }
+                                    });
+                                }
+                                break;
+                            case "b808":
+                                if(device.shardValidRequestIndex <= device.totalRequest){
+                                    String startHexIndex = Integer.toHexString((device.shardValidRequestIndex-1)*8);
+                                    String endHexIndex = Integer.toHexString(device.shardValidRequestIndex*8-1);;
+                                    if (device.shardValidRequestIndex==device.totalRequest) {
+                                        endHexIndex = Integer.toHexString(device.totalShard);
+                                    }
+                                    String shardValidRequestParam = StringUtils.join(startHexIndex,PARA_CONNECTOR,endHexIndex);
+                                    device.b807 = shardValidRequestParam;
+                                    String validTag = "b807";
+                                    writeMessage(ctx,type,validTag);
+                                    device.shardValidRequestIndex++;
+                                }else {
+                                    String upgradeResult = ReflectUtil.buildAttachMessage(AttachFunType.PUBLISH,device,"b422");
+                                    String packResult = MessageBuilder.buildFzkMsg(device.sn,upgradeResult,true);
+                                    log.info("透传↑↑↑↑：{}", upgradeResult);
+                                    ctx.writeAndFlush(packResult);
+                                    return;
+                                }
+                                break;
+                            default:
+                                log.info("不需要处理的消息类型，fun = {} tag = {}", fun, tag);
+                                return;
+                        }
+                        break;
+                    default:
+                        return;
+                }
             }else {
                 ByteBuffer buffer = ByteBuffer.wrap(in.content);
                 DownMsgType type = DownMsgType.getProtocolByMsgId(funId);
@@ -62,12 +179,12 @@ public class CoreLogicHandler extends ChannelInboundHandlerAdapter {
                         if(!isOnline && srcResult==0){
                             isOnline = true;
                             log.info("登录成功！");
-                            String versionContent = buildFzkContent(PUBLISH_FUN,VERSION_TAG,device.attachVersion);
+                            String versionContent = ReflectUtil.buildFzkContent(device.attachId,AttachFunType.PUBLISH.getFunId(),VERSION_TAG,device.b101);
                             String versionMsg = MessageBuilder.buildFzkMsg(device.sn,versionContent,true);
                             log.info("透传↑↑↑↑：{}", versionContent);
                             ctx.writeAndFlush(versionMsg);
 
-                            String abilityContent = buildFzkContent(PUBLISH_FUN,ABILITY_TAG,device.ability);
+                            String abilityContent = ReflectUtil.buildFzkContent(device.attachId,AttachFunType.PUBLISH.getFunId(),ABILITY_TAG,device.b102);
                             String abilityMsg = MessageBuilder.buildFzkMsg(device.sn,abilityContent,true);
                             log.info("透传↑↑↑↑：{}", abilityContent);
                             ctx.writeAndFlush(abilityMsg);
@@ -144,11 +261,45 @@ public class CoreLogicHandler extends ChannelInboundHandlerAdapter {
     }
 
 
-    private String buildFzkContent(int fun, String tag,String value){
-        if (StringUtils.isNotEmpty(value)) {
-            return StringUtils.join(device.attachId, PARA_CONNECTOR,fun,FUN_TAG_CONNECTOR,tag,PARA_CONNECTOR,value);
-        }else {
-            return StringUtils.join(device.attachId, PARA_CONNECTOR,fun,FUN_TAG_CONNECTOR,tag);
+    private void putWaitShardSet(String shardRequestParam){
+        String[] shardRequestIndexs = StringUtils.split(shardRequestParam,PARA_CONNECTOR);
+        for(String index: shardRequestIndexs){
+            waitShardIndexSet.add(index);
         }
     }
+
+
+    private String getShardRequestParam(){
+        if (device.shardRequestIndex < (device.totalRequest-1)) {
+            String shardRequestParam = IntStream.range(8*device.shardRequestIndex,8*(device.shardRequestIndex+1))
+                    .mapToObj(i->Integer.toHexString(i))
+                    .reduce((a,b)->StringUtils.joinWith(PARA_CONNECTOR,a,b))
+                    .get();
+            return shardRequestParam;
+        }if(device.shardRequestIndex == (device.totalRequest-1)) {
+            return IntStream.range(8*device.shardRequestIndex,device.totalShard+1)
+                    .mapToObj(i->Integer.toHexString(i))
+                    .reduce((a,b)->StringUtils.joinWith(PARA_CONNECTOR,a,b))
+                    .get();
+        }else {
+            return IntStream.range(0,8)
+                    .mapToObj(i->Integer.toHexString(i))
+                    .reduce((a,b)->StringUtils.joinWith(PARA_CONNECTOR,a,b))
+                    .get();
+        }
+    }
+
+
+    private void writeMessage(ChannelHandlerContext ctx, AttachFunType type, String requestTag){
+        try {
+            String upgradeRequest = ReflectUtil.buildAttachMessage(AttachFunType.getTypeByFunId(type.getAckFunId()),device,requestTag);
+            String packRequest = MessageBuilder.buildFzkMsg(device.sn,upgradeRequest,true);
+            log.info("透传↑↑↑↑：{}", upgradeRequest);
+            ctx.writeAndFlush(packRequest);
+        } catch (Exception e) {
+            log.error("发送消息时发生异常：e ={}", e);
+        }
+    }
+
+
 }

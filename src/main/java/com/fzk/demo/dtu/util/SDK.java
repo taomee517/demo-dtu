@@ -12,6 +12,7 @@ import com.fzk.dtu.utils.ValidateUtil;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import io.netty.util.ByteProcessor;
+import io.netty.util.ReferenceCountUtil;
 import lombok.extern.slf4j.Slf4j;
 
 /**
@@ -32,70 +33,71 @@ public class SDK {
      * @return
      * @throws Exception
      */
-    public static ByteBuf split(ByteBuf in) throws Exception {
-        int readableLen = in.readableBytes();
-        in.resetReaderIndex();
-        if (readableLen < MIN_LENGTH) {
-            return null;
-        }
-        int startSignIndex = in.forEachByte(new ByteProcessor.IndexOfProcessor(SIGN_CODE));
-        if(startSignIndex==-1){
-            return null;
-        }
-        //将readerIndex置为起始符下标+1
-        //因为起始符结束符是一样的，如果不往后移一位，下次到的还是起始下标
-        in.readerIndex(startSignIndex + 1);
-
-        //找到第一个报文结束符的下标
-        int endSignIndex = in.forEachByte(new ByteProcessor.IndexOfProcessor(SIGN_CODE));
-        if(endSignIndex == -1 || endSignIndex < startSignIndex){
-            in.readerIndex(startSignIndex);
-            return null;
-        }
-
-
-        //计算报文的总长度
-        //此处不能去操作writerIndex,否则只能截取到第一条完整报文
-        int length = endSignIndex + 1 - startSignIndex;
-
-        //如果长度还小于最小长度，就丢掉这条消息
-        if(length < MIN_LENGTH){
-            byte[] errMsg = new byte[length];
-            for(int i= startSignIndex; i< (endSignIndex + 1); i++){
-                int errIndex = i-startSignIndex;
-                errMsg[errIndex] = in.getByte(i);
+    public static byte[] split(ByteBuf in) throws Exception {
+        try {
+            int readableLen = in.readableBytes();
+            in.resetReaderIndex();
+            if (readableLen < MIN_LENGTH) {
+                return null;
             }
-            log.error("异常消息，有分隔符但长度太短：{}", BytesUtil.bytesToHexShortString(errMsg));
-            in.readerIndex(endSignIndex);
-            return null;
-        }
+            int startSignIndex = in.forEachByte(new ByteProcessor.IndexOfProcessor(SIGN_CODE));
+            if(startSignIndex==-1){
+                return null;
+            }
+            //将readerIndex置为起始符下标+1
+            //因为起始符结束符是一样的，如果不往后移一位，下次到的还是起始下标
+            in.readerIndex(startSignIndex + 1);
 
-        //将报文内容写入符串，并返回
-        in.readerIndex(startSignIndex);
-        return in.readBytes(length);
+            //找到第一个报文结束符的下标
+            int endSignIndex = in.forEachByte(new ByteProcessor.IndexOfProcessor(SIGN_CODE));
+            if(endSignIndex == -1 || endSignIndex < startSignIndex){
+                in.readerIndex(startSignIndex);
+                return null;
+            }
+
+
+            //计算报文的总长度
+            //此处不能去操作writerIndex,否则只能截取到第一条完整报文
+            int length = endSignIndex + 1 - startSignIndex;
+
+            //如果长度还小于最小长度，就丢掉这条消息
+            if(length < MIN_LENGTH){
+                byte[] errMsg = new byte[length];
+                for(int i= startSignIndex; i< (endSignIndex + 1); i++){
+                    int errIndex = i-startSignIndex;
+                    errMsg[errIndex] = in.getByte(i);
+                }
+                log.error("异常消息，有分隔符但长度太短：{}", BytesUtil.bytesToHexShortString(errMsg));
+                in.readerIndex(endSignIndex);
+                return null;
+            }
+
+            //将报文内容写入符串，并返回
+            in.readerIndex(startSignIndex);
+            byte[] data = new byte[length];
+            in.readBytes(data);
+            return data;
+        } finally {
+            ReferenceCountUtil.release(in);
+        }
     }
 
 
-    public static ByteBuf unEscape(ByteBuf buf) {
-        if(buf.readableBytes()==0){
-            return null;
-        }
-        byte[] bytes = new byte[buf.readableBytes()];
-        buf.getBytes(0,bytes);
-        byte[] restoreBytes = RestoreUtil.restore(bytes);
-        return Unpooled.wrappedBuffer(restoreBytes);
+    public static byte[] unEscape(byte[] buf) {
+        byte[] restoreBytes = RestoreUtil.restore(buf);
+        return restoreBytes;
     }
 
-    public static MessageBasic headerParse(ByteBuf buf){
+    public static MessageBasic headerParse(byte[] data){
+        ByteBuf buf = Unpooled.buffer();
+        buf.writeBytes(data);
         try {
             MessageBasic msg = new MessageBasic();
-            byte[] unEscapeData = new byte[buf.readableBytes()];
-            buf.getBytes(0,unEscapeData);
 
             //校验
-            ValidateUtil.validate(unEscapeData);
+            ValidateUtil.validate(data);
 
-            msg.raw = unEscapeData;
+            msg.raw = data;
 
             //startSign
             buf.readBytes(1);
@@ -155,6 +157,8 @@ public class SDK {
         } catch (Exception e) {
             log.error("消息头解析发生异常：e = {}", e);
             return null;
+        }finally {
+            ReferenceCountUtil.release(buf);
         }
     }
 

@@ -14,12 +14,10 @@ public class MessageDecoder extends ChannelInboundHandlerAdapter {
 
     @Override
     public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
-        if (msg instanceof ByteBuf) {
-            ByteBuf in = ((ByteBuf) msg);
-            if (Objects.nonNull(in)) {
-                MessageBasic basic = SDK.headerParse(in);
-                ctx.fireChannelRead(basic);
-            }
+        if (msg instanceof byte[]) {
+            byte[] in = ((byte[]) msg);
+            MessageBasic basic = SDK.headerParse(in);
+            ctx.fireChannelRead(basic);
         }
     }
 

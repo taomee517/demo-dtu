@@ -1,7 +1,6 @@
 package com.fzk.demo.dtu.handler;
 
 import com.fzk.demo.dtu.util.SDK;
-import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInboundHandlerAdapter;
 import lombok.extern.slf4j.Slf4j;
@@ -11,10 +10,10 @@ public class UnEscapeHandler extends ChannelInboundHandlerAdapter {
 
     @Override
     public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
-        if (msg instanceof ByteBuf) {
-            ByteBuf in = ((ByteBuf) msg);
-            ByteBuf unEscapeBuf = SDK.unEscape(in);
-            ctx.fireChannelRead(unEscapeBuf);
+        if (msg instanceof byte[]) {
+            byte[] in = ((byte[]) msg);
+            byte[] unEscapeBytes = SDK.unEscape(in);
+            ctx.fireChannelRead(unEscapeBytes);
         }
     }
 

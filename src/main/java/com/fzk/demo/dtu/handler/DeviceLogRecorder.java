@@ -16,7 +16,7 @@ public class DeviceLogRecorder extends MessageToMessageEncoder {
     @Override
     protected void encode(ChannelHandlerContext ctx, Object msg, List out) throws Exception {
         String downMsg = (String)msg;
-        log.info("设备消息：{}", downMsg);
+        log.info("RAW-AAA：{}", downMsg);
         String finalDownMsg = Secret2PlainUtil.plain2Secret(downMsg);
         byte[] bytes = BytesTranUtil.hexStringToBytes(finalDownMsg);
         ByteBuf buf = Unpooled.buffer(bytes.length);
