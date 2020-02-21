@@ -145,9 +145,9 @@ public class CoreLogicHandler extends ChannelInboundHandlerAdapter {
                             case "b808":
                                 if(device.shardValidRequestIndex <= device.totalRequest){
                                     String startHexIndex = Integer.toHexString((device.shardValidRequestIndex-1)*8);
-                                    String endHexIndex = Integer.toHexString(device.shardValidRequestIndex*8-1);;
+                                    String endHexIndex = Integer.toHexString(device.shardValidRequestIndex*8-1);
                                     if (device.shardValidRequestIndex==device.totalRequest) {
-                                        endHexIndex = Integer.toHexString(device.totalShard);
+                                        endHexIndex = Integer.toHexString(device.totalShard-1);
                                     }
                                     String shardValidRequestParam = StringUtils.join(startHexIndex,PARA_CONNECTOR,endHexIndex);
                                     device.b807 = shardValidRequestParam;
