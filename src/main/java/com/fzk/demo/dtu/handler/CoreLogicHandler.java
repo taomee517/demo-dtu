@@ -215,7 +215,7 @@ public class CoreLogicHandler extends ChannelInboundHandlerAdapter {
     @Override
     public void userEventTriggered(ChannelHandlerContext ctx, Object evt) throws Exception {
         IdleStateEvent event = (IdleStateEvent)evt;
-        if(event.equals(IdleStateEvent.WRITER_IDLE_STATE_EVENT)){
+        if(event.equals(IdleStateEvent.ALL_IDLE_STATE_EVENT)){
             String heatbeat = MessageBuilder.buildMsg(device.sn,UpMsgType.HEART_BEAT.getMsgId(),null,true);
             log.info("C ——> S");
             ctx.writeAndFlush(heatbeat);

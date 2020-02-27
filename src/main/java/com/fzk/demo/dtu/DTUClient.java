@@ -1,6 +1,7 @@
 package com.fzk.demo.dtu;
 
 import com.fzk.demo.dtu.constant.DefaultValue;
+import com.fzk.demo.dtu.handler.manager.HandlerManager;
 import io.netty.bootstrap.Bootstrap;
 import io.netty.channel.ChannelFuture;
 import io.netty.channel.EventLoopGroup;
@@ -21,6 +22,8 @@ public class DTUClient {
             String host = "127.0.0.1";
 //            String host = "pre.acceptor.mysirui.com";
 //            String host = "acceptor.mysirui.com";
+
+//            String host = "192.168.6.183";
             Bootstrap bootstrap = new Bootstrap();
             bootstrap.group(eventLoopGroup).channel(NioSocketChannel.class).handler(new HandlerManager());
             ChannelFuture future = bootstrap.connect(host, 2120).sync();

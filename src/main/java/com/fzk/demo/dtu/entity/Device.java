@@ -6,8 +6,15 @@ import lombok.Data;
 public class Device {
     public String imei = "623568794561335";
     public String sn = "014533224352";
-
     public int terminalId = 119210;
+
+
+//    public String imei = "863744046701693";
+//    public String sn = "014533228489";
+//    public int terminalId = 45994;
+
+
+
     public int attachId = 6;
 
     //广东省，深圳市，粤B88888，蓝色， 终端型号：KT-20

@@ -9,6 +9,7 @@ import lombok.extern.slf4j.Slf4j;
 
 import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
+import java.util.Objects;
 import java.util.concurrent.atomic.AtomicLong;
 
 @Slf4j
@@ -52,7 +53,10 @@ public class MessageBuilder {
         }
 
         //消息长度 0
-        int msgLength = content.length;
+        int msgLength = 0;
+        if (Objects.nonNull(content)) {
+            msgLength = content.length;
+        }
         int msgInfo = packSeparate << 13 | ((encodeAlgo & 0x07) << 10) | msgLength & 0x3ff;
         ParseUtil.putTwoBytesInt(bf,msgInfo);
 
