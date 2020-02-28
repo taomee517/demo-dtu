@@ -74,6 +74,21 @@ public class CoreLogicHandler extends ChannelInboundHandlerAdapter {
                         String packAck = MessageBuilder.buildFzkMsg(device.sn,ack,true);
                         log.info("透传↑↑↑↑：{}", ack);
                         ctx.writeAndFlush(packAck);
+
+                        if (CONTROL_TAG.equalsIgnoreCase(tag)) {
+                            //构建控制结果
+                            String[] paras = StringUtils.split(value,PARA_CONNECTOR);
+                            String bizIndex = paras[0];
+                            String serial = paras[1];
+                            String result = "1";
+                            String resultContent = StringUtils.joinWith(PARA_CONNECTOR,bizIndex,result,serial);
+                            String resultTag = RESULT_TAG;
+                            ReflectUtil.tagSetting(device,resultTag,resultContent);
+                            String resultMsg = ReflectUtil.buildAttachMessage(AttachFunType.PUBLISH,device,resultTag);
+                            String packResult = MessageBuilder.buildFzkMsg(device.sn,resultMsg,true);
+                            log.info("透传↑↑↑↑：{}", resultMsg);
+                            ctx.writeAndFlush(packResult);
+                        }
                         break;
                     case WRITE:
                         switch (tag){

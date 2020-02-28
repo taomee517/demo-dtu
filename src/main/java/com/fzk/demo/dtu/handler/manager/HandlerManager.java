@@ -24,7 +24,7 @@ public class HandlerManager extends ChannelInitializer<SocketChannel> {
         pipeline.addLast(new FrameSplitHandler());
         pipeline.addLast(new UnEscapeHandler());
         pipeline.addLast(new MessageDecoder());
-        pipeline.addLast(new IdleStateHandler(0,150000,0, TimeUnit.MILLISECONDS));
+        pipeline.addLast(new IdleStateHandler(0,75,0, TimeUnit.SECONDS));
         pipeline.addLast(new CoreLogicHandler(new Device()));
     }
 }

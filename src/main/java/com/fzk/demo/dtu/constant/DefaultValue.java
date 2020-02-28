@@ -22,6 +22,10 @@ public class DefaultValue {
     public static final String VERSION_TAG = "b101";
     public static final String ABILITY_TAG = "b102";
 
+    public static final String RESULT_TAG = "b401";
+    public static final String CONTROL_TAG = "b501";
+
+
     public static final int PUBLISH_FUN = 7;
 
 }

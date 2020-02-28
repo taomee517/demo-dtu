@@ -45,8 +45,13 @@ public class Device {
     //bluetooth config
     public String b203;
 
+    public String b401;
+
     //upgrade result
     public String b422 = "1";
+
+    //control tag
+    public String b501;
 
     //升级信息 扇区编号-扇区当前软件版本-分片长度-引导固件版本
     public String b803 = "0,2112,100,DY_V2";
