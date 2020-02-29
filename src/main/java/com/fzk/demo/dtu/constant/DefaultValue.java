@@ -23,6 +23,8 @@ public class DefaultValue {
     public static final String ABILITY_TAG = "b102";
 
     public static final String RESULT_TAG = "b401";
+    public static final String ALARM_TAG = "b413";
+
     public static final String CONTROL_TAG = "b501";
 
 

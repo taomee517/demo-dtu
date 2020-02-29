@@ -57,11 +57,13 @@ public class ReflectUtil {
     }
 
     public static void tagSetting(Device device, String tag, String value) throws Exception{
-        Class<?> clazz = device.getClass();
-        String methodName = StringUtils.join("set", tag.toUpperCase());
-        Method method = clazz.getMethod(methodName,String.class);
-        if (Objects.nonNull(method)) {
-            method.invoke(device,value);
+        if (checkTagExist(device,tag)) {
+            Class<?> clazz = device.getClass();
+            String methodName = StringUtils.join("set", tag.toUpperCase());
+            Method method = clazz.getMethod(methodName,String.class);
+            if (Objects.nonNull(method)) {
+                method.invoke(device,value);
+            }
         }
     }
 

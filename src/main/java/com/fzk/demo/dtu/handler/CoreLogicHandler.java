@@ -224,7 +224,7 @@ public class CoreLogicHandler extends ChannelInboundHandlerAdapter {
                 }
             }
         }
-
+        ctx.fireChannelRead(msg);
     }
 
     @Override
@@ -241,6 +241,7 @@ public class CoreLogicHandler extends ChannelInboundHandlerAdapter {
 
     @Override
     public void channelActive(ChannelHandlerContext ctx) throws Exception {
+        super.channelActive(ctx);
         String first = null;
         if (Objects.isNull(device.authKey)) {
             byte[] registerContent = BytesTranUtil.hexStringToBytes(device.regContent);
