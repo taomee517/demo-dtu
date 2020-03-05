@@ -64,6 +64,9 @@ public class CoreLogicHandler extends ChannelInboundHandlerAdapter {
                 String fun = funTagArray[0];
                 String tag = funTagArray[1].toLowerCase();
                 String value = StringUtils.substringAfter(fzkContent,funAndTag);
+                if (StringUtils.startsWith(value, PARA_CONNECTOR)) {
+                    value = StringUtils.substringAfter(value, PARA_CONNECTOR);
+                }
                 AttachFunType type = AttachFunType.getTypeByFunId(Integer.valueOf(fun));
                 switch (type){
                     case SETTING:
@@ -217,6 +220,18 @@ public class CoreLogicHandler extends ChannelInboundHandlerAdapter {
                             ctx.writeAndFlush(loginMsg);
                         }
                         break;
+                    case SETTING:
+                        byte[] content = in.content;
+                        byte[] srcParaId = new byte[2];
+                        System.arraycopy(content,0,srcParaId,0,srcParaId.length);
+                        byte srcLength = content[2];
+                        byte[] srcConfig = new byte[srcLength];
+                        System.arraycopy(content,3,srcConfig,0,srcLength);
+                        String config = new String(srcConfig,CHARSET);
+                        log.info("下发配置 paraId = {}, config = {}", BytesUtil.twoBytesToInt(srcParaId), config);
+                        String ack = buildCommonAck(in.serial,in.funId);
+                        ctx.writeAndFlush(ack);
+                        break;
                     case QUERY:
                     default:
                         log.info("暂时不支持的消息类型， funId = {}", funId);
@@ -272,6 +287,20 @@ public class CoreLogicHandler extends ChannelInboundHandlerAdapter {
         byte[] authContent = new byte[buffer.readableBytes()];
         buffer.readBytes(authContent);
         String authMsg = MessageBuilder.buildMsg(device.sn,UpMsgType.AUTH.getMsgId(),authContent,true);
+        buffer.release();
+        return authMsg;
+    }
+
+
+    private String buildCommonAck(int serverSerial, int funId){
+        ByteBuf buffer = Unpooled.buffer();
+        buffer.writeBytes(BytesUtil.intToTwoBytes(serverSerial));
+        buffer.writeBytes(BytesUtil.intToTwoBytes(funId));
+        //默认回复0，成功
+        buffer.writeByte(0);
+        byte[] ackContent = new byte[buffer.readableBytes()];
+        buffer.readBytes(ackContent);
+        String authMsg = MessageBuilder.buildMsg(device.sn,UpMsgType.ACK.getMsgId(),ackContent,true);
         buffer.release();
         return authMsg;
     }

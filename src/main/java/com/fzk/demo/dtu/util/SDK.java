@@ -120,7 +120,10 @@ public class SDK {
             buf.readBytes(6);
 
             //serial
-            buf.readBytes(2);
+            byte[] srcSerial = new byte[2];
+            buf.readBytes(srcSerial);
+            int serial = BytesUtil.twoBytesToInt(srcSerial);
+            msg.serial = serial;
 
             //package info
             if (packEnable) {
