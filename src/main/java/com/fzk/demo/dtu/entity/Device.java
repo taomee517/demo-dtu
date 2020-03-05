@@ -6,12 +6,14 @@ import lombok.Data;
 public class Device {
 //    public String imei = "623568794561335";
 //    public String sn = "014533224352";
-//    public int terminalId = 119210;
 
 
     public String imei = "863744046701693";
     public String sn = "014533228489";
-    public int terminalId = 45994;
+
+
+//    public String imei = "868288049818729";
+//    public String sn = "14533228489";
 
 
 
@@ -19,7 +21,7 @@ public class Device {
 
     //广东省，深圳市，粤B88888，蓝色， 终端型号：KT-20
     public String regContent = "002C012F37303131314B542D32302020206342440257666501D4C1423838383838";
-    public String authKey;
+    public String authKey = "FZK-BSJ-KT20-CONFIRM";
 
     //升级相关
     //单次请求分片数

@@ -19,8 +19,8 @@ public class DTUClient {
     public static void main(String[] args) throws Exception{
         EventLoopGroup eventLoopGroup = new NioEventLoopGroup(DefaultValue.DEFAULT_WORKER_THREAD);
         try {
-//            String host = "127.0.0.1";
-            String host = "pre.acceptor.mysirui.com";
+            String host = "127.0.0.1";
+//            String host = "pre.acceptor.mysirui.com";
 //            String host = "acceptor.mysirui.com";
 
 //            String host = "192.168.6.183";

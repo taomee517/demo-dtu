@@ -17,9 +17,11 @@ import io.netty.handler.timeout.IdleStateEvent;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 
+import java.nio.Buffer;
 import java.nio.ByteBuffer;
 import java.util.HashSet;
 import java.util.Objects;
+import java.util.Random;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Consumer;
@@ -233,6 +235,34 @@ public class CoreLogicHandler extends ChannelInboundHandlerAdapter {
                         ctx.writeAndFlush(ack);
                         break;
                     case QUERY:
+                        byte[] querySerial = BytesUtil.intToTwoBytes(in.serial);
+                        ByteBuffer queryBuffer = ByteBuffer.allocate(1024);
+                        queryBuffer.put(querySerial);
+                        //两个参数，host-0013  port-0018
+                        queryBuffer.put(((byte) 2));
+
+                        String addr = StringUtils.substringAfter(ctx.channel().remoteAddress().toString(),"/");
+                        String host = StringUtils.substringBefore(addr, ":");
+                        String strPort = StringUtils.substringAfter(addr, ":");
+                        byte[] hostBytes = host.getBytes(CHARSET);
+                        byte[] portBytes = BytesUtil.intToTwoBytes(Integer.parseInt(strPort));
+                        //host
+                        byte[] hostParaId = {0,0,0,19};
+                        queryBuffer.put(hostParaId);
+                        queryBuffer.put(((byte) hostBytes.length));
+                        queryBuffer.put(hostBytes);
+                        //port
+                        byte[] portParaId = {0,0,0,24};
+                        queryBuffer.put(portParaId);
+                        queryBuffer.put(((byte) portBytes.length));
+                        queryBuffer.put(portBytes);
+                        byte[] queryAckContent = new byte[queryBuffer.position()];
+                        queryBuffer.flip();
+                        queryBuffer.get(queryAckContent);
+                        queryBuffer.clear();
+                        String queryAck = MessageBuilder.buildMsg(device.sn,UpMsgType.QUERY_RESULT.getMsgId(), queryAckContent,true);
+                        ctx.writeAndFlush(queryAck);
+                        break;
                     default:
                         log.info("暂时不支持的消息类型， funId = {}", funId);
                         break;
@@ -257,8 +287,9 @@ public class CoreLogicHandler extends ChannelInboundHandlerAdapter {
     @Override
     public void channelActive(ChannelHandlerContext ctx) throws Exception {
         super.channelActive(ctx);
+        boolean randomFlag = new Random().nextBoolean();
         String first = null;
-        if (Objects.isNull(device.authKey)) {
+        if (randomFlag) {
             byte[] registerContent = BytesTranUtil.hexStringToBytes(device.regContent);
             String registerMsg = MessageBuilder.buildMsg(device.sn, UpMsgType.REGISTER.getMsgId(),registerContent,true);
             first = registerMsg;
@@ -267,6 +298,10 @@ public class CoreLogicHandler extends ChannelInboundHandlerAdapter {
             first = buildLoginMessage();
             log.info("模拟登录");
         }
+
+        //线上设备测试
+//        String first = "7E 01 02 08 20 01 45 33 22 84 89 00 27 46 09 7D 01 F6 86 5E 66 E4 11 B6 AD 8A EE 92 D3 11 BD F8 99 CE B9 A2 9D 13 D8 87 B1 16 B0 AC C1 E2 B4 7E";
+//        first = StringUtils.replace(first, " ", "");
 
         ctx.writeAndFlush(first);
     }

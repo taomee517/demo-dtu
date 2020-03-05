@@ -2,12 +2,9 @@ package com.fzk.demo.dtu.handler;
 
 import com.fzk.demo.dtu.entity.MessageBasic;
 import com.fzk.demo.dtu.util.SDK;
-import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInboundHandlerAdapter;
 import lombok.extern.slf4j.Slf4j;
-
-import java.util.Objects;
 
 @Slf4j
 public class MessageDecoder extends ChannelInboundHandlerAdapter {
